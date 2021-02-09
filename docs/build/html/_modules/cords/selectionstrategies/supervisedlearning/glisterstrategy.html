@@ -1,0 +1,512 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>GradMatch.selectionstrategies.supervisedlearning.glisterstrategy &mdash; GradMatch v0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home" alt="Documentation Home"> GradMatch
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../strategies/modules.html">GradMatch</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">GradMatch</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>GradMatch.selectionstrategies.supervisedlearning.glisterstrategy</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for GradMatch.selectionstrategies.supervisedlearning.glisterstrategy</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">from</span> <span class="nn">.dataselectionstrategy</span> <span class="kn">import</span> <span class="n">DataSelectionStrategy</span>
+
+
+<div class="viewcode-block" id="GLISTERStrategy"><a class="viewcode-back" href="../../../../strategies/GradMatch.selection_strategies.supervisedlearning.html#GradMatch.selectionstrategies.supervisedlearning.glisterstrategy.GLISTERStrategy">[docs]</a><span class="k">class</span> <span class="nc">GLISTERStrategy</span><span class="p">(</span><span class="n">DataSelectionStrategy</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implementation of GLISTER-ONLINE Strategy from the paper :footcite:`killamsetty2020glister`  for supervised learning frameworks.</span>
+<span class="sd">    GLISTER-ONLINE methods tries to solve the  bi-level optimization problem given below:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \\overbrace{\\underset{{S \\subseteq {\\mathcal U}, |S| \\leq k}}{\\operatorname{argmin\\hspace{0.7mm}}} L_V(\\underbrace{\\underset{\\theta}{\\operatorname{argmin\\hspace{0.7mm}}} L_T( \\theta, S)}_{inner-level}, {\\mathcal V})}^{outer-level}</span>
+
+<span class="sd">    In the above equation, :math:`\\mathcal{U}` denotes the training set, :math:`\\mathcal{V}` denotes the validation set that guides the subset selection process, :math:`L_T` denotes the</span>
+<span class="sd">    training loss, :math:`L_V` denotes the validation loss, :math:`S` denotes the data subset selected at each round,  and :math:`k` is the budget for the subset.</span>
+
+<span class="sd">    Since, solving the complete inner-optimization is expensive, GLISTER-ONLINE adopts a online one-step meta approximation where we approximate the solution to inner problem</span>
+<span class="sd">    by taking a single gradient step.</span>
+
+<span class="sd">    The optimization problem after the approximation is as follows:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \\overbrace{\\underset{{S \\subseteq {\\mathcal U}, |S| \\leq k}}{\\operatorname{argmin\\hspace{0.7mm}}} L_V(\\underbrace{\\theta - \\eta \\nabla_{\\theta}L_T(\\theta, S)}_{inner-level}, {\\mathcal V})}^{outer-level}</span>
+
+<span class="sd">    In the above equation, :math:`\\eta` denotes the step-size used for one-step gradient update.</span>
+
+<span class="sd">    GLISTER-ONLINE also makes an additional approximation called Taylor-Series approximation to easily solve the outer problem using a greedy selection algorithm.</span>
+<span class="sd">    The Taylor series approximation is as follows:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        L_V(\\theta - \\eta \\nabla_{\\theta}L_T(\\theta, S), {\\mathcal V}) \\approx L_V(\\theta) - \\eta {\\nabla_{\\theta}L_T(\\theta, S)}^T \\nabla_{\\theta}L_V(\\theta, {\\mathcal V})</span>
+
+<span class="sd">    The Optimization problem after the Taylor series approximation is as follows:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \\underset{{S \\subseteq {\\mathcal U}, |S| \\leq k}}{\\operatorname{argmin\\hspace{0.7mm}}}L_V(\\theta - \\eta \\nabla_{\\theta}L_T(\\theta, S), {\\mathcal V}) \\approx L_V(\\theta) - \\eta {\\nabla_{\\theta}L_T(\\theta, S)}^T \\nabla_{\\theta}L_V(\\theta, {\\mathcal V})</span>
+
+<span class="sd">    Taylor&#39;s series approximation reduces the time complexity by reducing the need of calculating the validation loss for each element during greedy selection step which</span>
+<span class="sd">    means reducing the number of forward passes required.</span>
+
+<span class="sd">    GLISTER-ONLINE is an adaptive subset selection algorithm that tries to select a subset every :math:`L` epochs and the parameter `L` can be set in the original training loop.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">    trainloader: class</span>
+<span class="sd">        Loading the training data using pytorch DataLoader</span>
+<span class="sd">    valloader: class</span>
+<span class="sd">        Loading the validation data using pytorch DataLoader</span>
+<span class="sd">    model: class</span>
+<span class="sd">        Model architecture used for training</span>
+<span class="sd">    loss_type: class</span>
+<span class="sd">        The type of loss criterion</span>
+<span class="sd">    eta: float</span>
+<span class="sd">        Learning rate. Step size for the one step gradient update</span>
+<span class="sd">    device: str</span>
+<span class="sd">        The device being utilized - cpu | cuda</span>
+<span class="sd">    num_classes: int</span>
+<span class="sd">        The number of target classes in the dataset</span>
+<span class="sd">    linear_layer: bool</span>
+<span class="sd">        Apply linear transformation to the data</span>
+<span class="sd">    selection_type: str</span>
+<span class="sd">        Type of selection -</span>
+<span class="sd">        - &#39;RGreedy&#39; : RGreedy Selection method is a variant of naive greedy where we just perform r rounds of greedy selection by choosing k/r points in each round.</span>
+<span class="sd">        - &#39;Stochastic&#39; : Stochastic greedy selection method is based on the algorithm presented in this paper :footcite:`mirzasoleiman2014lazier`</span>
+<span class="sd">        - &#39;Naive&#39; : Normal naive greedy selection method that selects a single best element every step until the budget is fulfilled</span>
+<span class="sd">    r : int, optional</span>
+<span class="sd">        Number of greedy selection rounds when selection method is RGreedy (default: 15)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainloader</span><span class="p">,</span> <span class="n">valloader</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">loss_type</span><span class="p">,</span>
+                 <span class="n">eta</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">linear_layer</span><span class="p">,</span> <span class="n">selection_type</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">15</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor method</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">trainloader</span><span class="p">,</span> <span class="n">valloader</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">linear_layer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">=</span> <span class="n">loss_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">=</span> <span class="n">eta</span>  <span class="c1"># step size for the one step gradient update</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_out</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_l1</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selection_type</span> <span class="o">=</span> <span class="n">selection_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">=</span> <span class="n">r</span>
+
+
+    <span class="k">def</span> <span class="nf">_update_grads_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grads_currX</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">first_init</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the gradient values</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        grad_currX: OrderedDict, optional</span>
+<span class="sd">            Gradients of the current element (default: None)</span>
+<span class="sd">        first_init: bool, optional</span>
+<span class="sd">            Gradient initialization (default: False)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">embDim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_embedding_dim</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">first_init</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">batch_idx</span><span class="p">,</span> <span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">valloader</span><span class="p">):</span>
+                <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">targets</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">batch_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+                        <span class="n">out</span><span class="p">,</span> <span class="n">l1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">last</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="n">data</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="c1">#Gradient Calculation Part</span>
+                    <span class="n">outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                    <span class="n">outputs</span><span class="o">.</span><span class="n">scatter_</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">targets</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">l0_grads</span> <span class="o">=</span> <span class="n">data</span> <span class="o">-</span> <span class="n">outputs</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_layer</span><span class="p">:</span>
+                        <span class="n">l0_expand</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">l0_grads</span><span class="p">,</span> <span class="n">embDim</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="n">l1_grads</span> <span class="o">=</span> <span class="n">l0_expand</span> <span class="o">*</span> <span class="n">l1</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">init_out</span> <span class="o">=</span> <span class="n">out</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">init_l1</span> <span class="o">=</span> <span class="n">l1</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">y_val</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+                        <span class="n">out</span><span class="p">,</span> <span class="n">l1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">last</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                        <span class="n">data</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                    <span class="n">outputs</span><span class="o">.</span><span class="n">scatter_</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">targets</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">batch_l0_grads</span> <span class="o">=</span> <span class="n">data</span> <span class="o">-</span> <span class="n">outputs</span>
+                    <span class="n">l0_grads</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">l0_grads</span><span class="p">,</span> <span class="n">batch_l0_grads</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_layer</span><span class="p">:</span>
+                        <span class="n">batch_l0_expand</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">batch_l0_grads</span><span class="p">,</span> <span class="n">embDim</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="n">batch_l1_grads</span> <span class="o">=</span> <span class="n">batch_l0_expand</span> <span class="o">*</span> <span class="n">l1</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span>
+                        <span class="n">l1_grads</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">l1_grads</span><span class="p">,</span> <span class="n">batch_l1_grads</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">init_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">init_out</span><span class="p">,</span> <span class="n">out</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">init_l1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">init_l1</span><span class="p">,</span> <span class="n">l1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">y_val</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">y_val</span><span class="p">,</span> <span class="n">targets</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">grads_currX</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+                <span class="n">out_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_out</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">*</span> <span class="n">grads_currX</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">init_out</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_layer</span><span class="p">:</span>
+                    <span class="n">out_vec</span> <span class="o">=</span> <span class="n">out_vec</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">init_l1</span><span class="p">,</span> <span class="n">grads_currX</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">:]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+
+                <span class="n">scores</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">out_vec</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">one_hot_label</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_val</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                <span class="n">one_hot_label</span><span class="o">.</span><span class="n">scatter_</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_val</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">l0_grads</span> <span class="o">=</span> <span class="n">scores</span> <span class="o">-</span> <span class="n">one_hot_label</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_layer</span><span class="p">:</span>
+                    <span class="n">l0_expand</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">l0_grads</span><span class="p">,</span> <span class="n">embDim</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">l1_grads</span> <span class="o">=</span> <span class="n">l0_expand</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_l1</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span>
+
+        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_layer</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grads_val_curr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">l0_grads</span><span class="p">,</span> <span class="n">l1_grads</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">grads_val_curr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">l0_grads</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GLISTERStrategy.eval_taylor_modular"><a class="viewcode-back" href="../../../../strategies/GradMatch.selection_strategies.supervisedlearning.html#GradMatch.selectionstrategies.supervisedlearning.glisterstrategy.GLISTERStrategy.eval_taylor_modular">[docs]</a>    <span class="k">def</span> <span class="nf">eval_taylor_modular</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grads</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evaluate gradients</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        grads: Tensor</span>
+<span class="sd">            Gradients</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        gains: Tensor</span>
+<span class="sd">            Matrix product of two tensors</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">grads_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grads_val_curr</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">gains</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">grads</span><span class="p">,</span> <span class="n">grads_val</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">gains</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_update_gradients_subset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grads_X</span><span class="p">,</span> <span class="n">element</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update gradients of set X + element (basically adding element to X)</span>
+<span class="sd">        Note that it modifies the inpute vector! Also grads_X is a list! grad_e is a tuple!</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        grads_X: list</span>
+<span class="sd">            Gradients</span>
+<span class="sd">        element: int</span>
+<span class="sd">            Element that need to be added to the gradients</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1">#if isinstance(element, list):</span>
+        <span class="n">grads_X</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grads_per_elem</span><span class="p">[</span><span class="n">element</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1">#else:</span>
+        <span class="c1">#    grads_X += self.grads_per_elem[element]</span>
+
+    
+<div class="viewcode-block" id="GLISTERStrategy.select"><a class="viewcode-back" href="../../../../strategies/GradMatch.selection_strategies.supervisedlearning.html#GradMatch.selectionstrategies.supervisedlearning.glisterstrategy.GLISTERStrategy.select">[docs]</a>    <span class="k">def</span> <span class="nf">select</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">budget</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply naive greedy method for data selection</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        budget: int</span>
+<span class="sd">            The number of data points to be selected</span>
+<span class="sd">        model_params: OrderedDict</span>
+<span class="sd">            Python dictionary object containing models parameters</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        greedySet: list</span>
+<span class="sd">            List containing indices of the best datapoints, </span>
+<span class="sd">        budget: Tensor</span>
+<span class="sd">            Tensor containing gradients of datapoints present in greedySet</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_model</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compute_gradients</span><span class="p">()</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Per Element gradient computation time is: &quot;</span><span class="p">,</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_grads_val</span><span class="p">(</span><span class="n">first_init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Updated validation set gradient computation time is: &quot;</span><span class="p">,</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+        <span class="c1"># Dont need the trainloader here!! Same as full batch version!</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">greedySet</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="n">remainSet</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_trn</span><span class="p">))</span>
+
+
+        <span class="c1">#RModular Greedy Selection Algorithm</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection_type</span> <span class="o">==</span> <span class="s1">&#39;RGreedy&#39;</span><span class="p">:</span>
+            <span class="n">t_ng_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>  <span class="c1"># naive greedy start time</span>
+            <span class="c1">#subset_size = int((len(self.grads_per_elem) / r))</span>
+            <span class="n">selection_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">budget</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">r</span><span class="p">)</span>
+            <span class="k">while</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span> <span class="o">&lt;</span> <span class="n">budget</span><span class="p">):</span>
+                <span class="c1"># Try Using a List comprehension here!</span>
+                <span class="n">t_one_elem</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="n">rem_grads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grads_per_elem</span><span class="p">[</span><span class="n">remainSet</span><span class="p">]</span>
+                <span class="n">gains</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_taylor_modular</span><span class="p">(</span><span class="n">rem_grads</span><span class="p">)</span>
+                <span class="c1"># Update the greedy set and remaining set</span>
+                <span class="n">sorted_gains</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">gains</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">descending</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">selected_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">remainSet</span><span class="p">[</span><span class="n">index</span><span class="o">.</span><span class="n">item</span><span class="p">()]</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">selection_size</span><span class="p">]]</span>
+                <span class="n">greedySet</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">selected_indices</span><span class="p">)</span>
+                <span class="p">[</span><span class="n">remainSet</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">selected_indices</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">grads_currX</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grads_per_elem</span><span class="p">[</span><span class="n">selected_indices</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># If 1st selection, then just set it to bestId grads</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_update_gradients_subset</span><span class="p">(</span><span class="n">grads_currX</span><span class="p">,</span> <span class="n">selected_indices</span><span class="p">)</span>
+                <span class="c1"># Update the grads_val_current using current greedySet grads</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_update_grads_val</span><span class="p">(</span><span class="n">grads_currX</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span> <span class="o">%</span> <span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># Printing bestGain and Selection time for 1 element.</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;numSelected:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span><span class="p">,</span> <span class="s2">&quot;Time for 1:&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t_one_elem</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span> <span class="o">+=</span> <span class="n">selection_size</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;R greedy total time:&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t_ng_start</span><span class="p">)</span>
+
+        <span class="c1">#Stochastic Greedy Selection Algorithm</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection_type</span> <span class="o">==</span> <span class="s1">&#39;Stochastic&#39;</span><span class="p">:</span>
+            <span class="n">t_ng_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>  <span class="c1"># naive greedy start time</span>
+            <span class="n">subset_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grads_per_elem</span><span class="p">)</span> <span class="o">/</span> <span class="n">budget</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">100</span><span class="p">))</span>
+            <span class="k">while</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span> <span class="o">&lt;</span> <span class="n">budget</span><span class="p">):</span>
+                <span class="c1"># Try Using a List comprehension here!</span>
+                <span class="n">t_one_elem</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="n">subset_selected</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">remainSet</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">subset_size</span><span class="p">)</span>
+                <span class="n">rem_grads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grads_per_elem</span><span class="p">[</span><span class="n">subset_selected</span><span class="p">]</span>
+                <span class="n">gains</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_taylor_modular</span><span class="p">(</span><span class="n">rem_grads</span><span class="p">)</span>
+                <span class="c1"># Update the greedy set and remaining set</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">gains</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">descending</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">bestId</span> <span class="o">=</span> <span class="p">[</span><span class="n">subset_selected</span><span class="p">[</span><span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()]]</span>
+                <span class="n">greedySet</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bestId</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">remainSet</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">bestId</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="c1"># Update info in grads_currX using element=bestId</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_update_gradients_subset</span><span class="p">(</span><span class="n">grads_currX</span><span class="p">,</span> <span class="n">bestId</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># If 1st selection, then just set it to bestId grads</span>
+                    <span class="n">grads_currX</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grads_per_elem</span><span class="p">[</span><span class="n">bestId</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Making it a list so that is mutable!</span>
+                <span class="c1"># Update the grads_val_current using current greedySet grads</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_update_grads_val</span><span class="p">(</span><span class="n">grads_currX</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># Printing bestGain and Selection time for 1 element.</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;numSelected:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span><span class="p">,</span> <span class="s2">&quot;Time for 1:&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t_one_elem</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Stochastic Greedy total time:&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t_ng_start</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection_type</span> <span class="o">==</span> <span class="s1">&#39;Naive&#39;</span><span class="p">:</span>
+            <span class="n">t_ng_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>  <span class="c1"># naive greedy start time</span>
+            <span class="k">while</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span> <span class="o">&lt;</span> <span class="n">budget</span><span class="p">):</span>
+                <span class="c1"># Try Using a List comprehension here!</span>
+                <span class="n">t_one_elem</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="n">rem_grads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grads_per_elem</span><span class="p">[</span><span class="n">remainSet</span><span class="p">]</span>
+                <span class="n">gains</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_taylor_modular</span><span class="p">(</span><span class="n">rem_grads</span><span class="p">)</span>
+                <span class="c1"># Update the greedy set and remaining set</span>
+                <span class="c1">#_, maxid = torch.max(gains, dim=0)</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">gains</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">descending</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">bestId</span> <span class="o">=</span> <span class="p">[</span><span class="n">remainSet</span><span class="p">[</span><span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()]]</span>
+                <span class="n">greedySet</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bestId</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">remainSet</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">bestId</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="c1"># Update info in grads_currX using element=bestId</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">grads_currX</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grads_per_elem</span><span class="p">[</span><span class="n">bestId</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># If 1st selection, then just set it to bestId grads</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_update_gradients_subset</span><span class="p">(</span><span class="n">grads_currX</span><span class="p">,</span> <span class="n">bestId</span><span class="p">)</span>
+                <span class="c1"># Update the grads_val_current using current greedySet grads</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_update_grads_val</span><span class="p">(</span><span class="n">grads_currX</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># Printing bestGain and Selection time for 1 element.</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;numSelected:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">numSelected</span><span class="p">,</span> <span class="s2">&quot;Time for 1:&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t_one_elem</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Naive Greedy total time:&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t_ng_start</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">greedySet</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">budget</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2021, Krishnateja Killamsetty, Dheeraj Bhat, Rishabh Iyer
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

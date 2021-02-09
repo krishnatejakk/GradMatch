@@ -1,0 +1,373 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy &mdash; GradMatch v0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home" alt="Documentation Home"> GradMatch
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../strategies/modules.html">GradMatch</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">GradMatch</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">.dataselectionstrategy</span> <span class="kn">import</span> <span class="n">DataSelectionStrategy</span>
+<span class="kn">from</span> <span class="nn">..helpers</span> <span class="kn">import</span> <span class="n">OrthogonalMP_REG_Parallel</span><span class="p">,</span> <span class="n">OrthogonalMP_REG</span>
+
+<div class="viewcode-block" id="OMPGradMatchStrategy"><a class="viewcode-back" href="../../../../strategies/GradMatch.selection_strategies.supervisedlearning.html#GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy.OMPGradMatchStrategy">[docs]</a><span class="k">class</span> <span class="nc">OMPGradMatchStrategy</span><span class="p">(</span><span class="n">DataSelectionStrategy</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implementation of OMPGradMatch Strategy from the paper :footcite:`sivasubramanian2020gradmatch` for supervised learning frameworks.</span>
+
+<span class="sd">    OMPGradMatch strategy tries to solve the optimization problem given below:</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \\min_{\\mathbf{w}, S: |S| \\leq k} \\Vert \\sum_{i \\in S} w_i \\nabla_{\\theta}L_T^i(\\theta) -  \\nabla_{\\theta}L(\\theta)\\Vert</span>
+
+<span class="sd">    In the above equation, :math:`\\mathbf{w}` denotes the weight vector that contains the weights for each data instance, :math:`\mathcal{U}` training set where :math:`(x^i, y^i)` denotes the :math:`i^{th}` training data point and label respectively,</span>
+<span class="sd">    :math:`L_T` denotes the training loss, :math:`L` denotes either training loss or validation loss depending on the parameter valid,</span>
+<span class="sd">    :math:`S` denotes the data subset selected at each round, and :math:`k` is the budget for the subset.</span>
+
+<span class="sd">    The above optimization problem is solved using the Orthogonal Matching Pursuit(OMP) algorithm.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">    trainloader: class</span>
+<span class="sd">        Loading the training data using pytorch DataLoader</span>
+<span class="sd">    valloader: class</span>
+<span class="sd">        Loading the validation data using pytorch DataLoader</span>
+<span class="sd">    model: class</span>
+<span class="sd">        Model architecture used for training</span>
+<span class="sd">    loss_type: class</span>
+<span class="sd">        The type of loss criterion</span>
+<span class="sd">    eta: float</span>
+<span class="sd">        Learning rate. Step size for the one step gradient update</span>
+<span class="sd">    device: str</span>
+<span class="sd">        The device being utilized - cpu | cuda</span>
+<span class="sd">    num_classes: int</span>
+<span class="sd">        The number of target classes in the dataset</span>
+<span class="sd">    linear_layer: bool</span>
+<span class="sd">        Apply linear transformation to the data</span>
+<span class="sd">    selection_type: str</span>
+<span class="sd">        Type of selection -</span>
+<span class="sd">        - &#39;PerClass&#39;: PerClass method is where OMP algorithm is applied on each class data points seperately.</span>
+<span class="sd">        - &#39;PerClassPerGradient&#39;: PerClassPerGradient method is same as PerClass but we use the gradient corresponding to classification layer of that class only.</span>
+<span class="sd">    valid : bool, optional</span>
+<span class="sd">        If valid==True we use validation dataset gradient sum in OMP otherwise we use training dataset (default: False)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainloader</span><span class="p">,</span> <span class="n">valloader</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">loss_type</span><span class="p">,</span>
+                 <span class="n">eta</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">linear_layer</span><span class="p">,</span> <span class="n">selection_type</span><span class="p">,</span> <span class="n">valid</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor method</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">trainloader</span><span class="p">,</span> <span class="n">valloader</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">linear_layer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">=</span> <span class="n">loss_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">=</span> <span class="n">eta</span>  <span class="c1"># step size for the one step gradient update</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_out</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_l1</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selection_type</span> <span class="o">=</span> <span class="n">selection_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">valid</span> <span class="o">=</span> <span class="n">valid</span>
+
+<div class="viewcode-block" id="OMPGradMatchStrategy.gen_rand_prior_indices"><a class="viewcode-back" href="../../../../strategies/GradMatch.selection_strategies.supervisedlearning.html#GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy.OMPGradMatchStrategy.gen_rand_prior_indices">[docs]</a>    <span class="k">def</span> <span class="nf">gen_rand_prior_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">curr_size</span><span class="p">,</span> <span class="n">remainList</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">per_sample_budget</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">curr_size</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">remainList</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">per_sample_count</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trn_lbls</span> <span class="o">==</span> <span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)]</span>
+            <span class="n">total_set</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_trn</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">per_sample_count</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trn_lbls</span><span class="p">[</span><span class="n">remainList</span><span class="p">]</span> <span class="o">==</span> <span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)]</span>
+            <span class="n">total_set</span> <span class="o">=</span> <span class="n">remainList</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">remainList</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">label_idxs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trn_lbls</span> <span class="o">==</span> <span class="n">i</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">label_idxs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trn_lbls</span><span class="p">[</span><span class="n">remainList</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                <span class="n">label_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">remainList</span><span class="p">)[</span><span class="n">label_idxs</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">per_sample_count</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">per_sample_budget</span><span class="p">:</span>
+                <span class="n">indices</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">label_idxs</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">per_sample_budget</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">indices</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">label_idxs</span><span class="p">)</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="p">(</span><span class="n">per_sample_budget</span> <span class="o">-</span> <span class="n">per_sample_count</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">:</span>
+            <span class="n">total_set</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="n">indices</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">total_set</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">count</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">indices</span></div>
+
+<div class="viewcode-block" id="OMPGradMatchStrategy.ompwrapper"><a class="viewcode-back" href="../../../../strategies/GradMatch.selection_strategies.supervisedlearning.html#GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy.OMPGradMatchStrategy.ompwrapper">[docs]</a>    <span class="k">def</span> <span class="nf">ompwrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">bud</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
+            <span class="n">reg</span> <span class="o">=</span> <span class="n">OrthogonalMP_REG</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">Y</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">nnz</span><span class="o">=</span><span class="n">bud</span><span class="p">,</span> <span class="n">positive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lam</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">reg</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">reg</span> <span class="o">=</span> <span class="n">OrthogonalMP_REG_Parallel</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">nnz</span><span class="o">=</span><span class="n">bud</span><span class="p">,</span>
+                                          <span class="n">positive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                          <span class="n">lam</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">reg</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ind</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">reg</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="OMPGradMatchStrategy.select"><a class="viewcode-back" href="../../../../strategies/GradMatch.selection_strategies.supervisedlearning.html#GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy.OMPGradMatchStrategy.select">[docs]</a>    <span class="k">def</span> <span class="nf">select</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">budget</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply OMP Algorithm for data selection</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        budget: int</span>
+<span class="sd">            The number of data points to be selected</span>
+<span class="sd">        model_params: OrderedDict</span>
+<span class="sd">            Python dictionary object containing models parameters</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        greedySet: list</span>
+<span class="sd">            List containing indices of the best datapoints,</span>
+<span class="sd">        budget: Tensor</span>
+<span class="sd">            Tensor containing gradients of datapoints present in greedySet</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">omp_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_model</span><span class="p">(</span><span class="n">model_params</span><span class="p">)</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compute_gradients</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">valid</span><span class="p">)</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Per Element gradient computation time is: &quot;</span><span class="p">,</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+        <span class="c1">#trn_gradients = []</span>
+        <span class="c1">#val_gradients = []</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection_type</span> <span class="o">==</span> <span class="s1">&#39;PerClass&#39;</span><span class="p">:</span>
+            <span class="n">idxs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">gammas</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">):</span>
+                <span class="n">trn_subset_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trn_lbls</span> <span class="o">==</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">trn_gradients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grads_per_elem</span><span class="p">[</span><span class="n">trn_subset_idx</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid</span><span class="p">:</span>
+                    <span class="n">val_subset_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">val_lbls</span> <span class="o">==</span> <span class="n">i</span><span class="p">)</span>
+                    <span class="n">sum_val_grad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">val_grads_per_elem</span><span class="p">[</span><span class="n">val_subset_idx</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">sum_val_grad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">trn_gradients</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">idxs_temp</span><span class="p">,</span> <span class="n">gammas_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ompwrapper</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">trn_gradients</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                                          <span class="n">sum_val_grad</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">budget</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">trn_subset_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_trn</span><span class="p">))</span>
+                <span class="n">idxs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">trn_subset_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()[</span><span class="n">idxs_temp</span><span class="p">]))</span>
+                <span class="n">gammas</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">gammas_temp</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">selection_type</span> <span class="o">==</span> <span class="s1">&#39;PerClassPerGradient&#39;</span><span class="p">:</span>
+            <span class="n">idxs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">gammas</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">embDim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_embedding_dim</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">):</span>
+                <span class="n">trn_subset_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trn_lbls</span> <span class="o">==</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">trn_gradients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grads_per_elem</span><span class="p">[</span><span class="n">trn_subset_idx</span><span class="p">]</span>
+                <span class="n">tmp_gradients</span> <span class="o">=</span> <span class="n">trn_gradients</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">tmp1_gradients</span> <span class="o">=</span> <span class="n">trn_gradients</span><span class="p">[:</span> <span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">+</span> <span class="p">(</span><span class="n">embDim</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">+</span> <span class="p">(</span><span class="n">embDim</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))]</span>
+                <span class="n">trn_gradients</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">tmp_gradients</span><span class="p">,</span> <span class="n">tmp1_gradients</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid</span><span class="p">:</span>
+                    <span class="n">val_subset_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">val_lbls</span> <span class="o">==</span> <span class="n">i</span><span class="p">)</span>
+                    <span class="n">val_gradients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">val_grads_per_elem</span><span class="p">[</span><span class="n">val_subset_idx</span><span class="p">]</span>
+                    <span class="n">tmp_gradients</span> <span class="o">=</span> <span class="n">val_gradients</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">tmp1_gradients</span> <span class="o">=</span> <span class="n">val_gradients</span><span class="p">[:,</span>
+                                     <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">+</span> <span class="p">(</span><span class="n">embDim</span> <span class="o">*</span> <span class="n">i</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">+</span> <span class="p">(</span><span class="n">embDim</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))]</span>
+                    <span class="n">val_gradients</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">tmp_gradients</span><span class="p">,</span> <span class="n">tmp1_gradients</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">sum_val_grad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">val_gradients</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">sum_val_grad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">trn_gradients</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">idxs_temp</span><span class="p">,</span> <span class="n">gammas_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ompwrapper</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">trn_gradients</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                                                         <span class="n">sum_val_grad</span><span class="p">,</span>
+                                                         <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">budget</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">trn_subset_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_trn</span><span class="p">))</span>
+                <span class="n">idxs</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">trn_subset_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()[</span><span class="n">idxs_temp</span><span class="p">]))</span>
+                <span class="n">gammas</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">gammas_temp</span><span class="p">)</span>
+        <span class="n">omp_end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;OMP algorithm Subset Selection time is: &quot;</span><span class="p">,</span> <span class="n">omp_end_time</span> <span class="o">-</span> <span class="n">omp_start_time</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">idxs</span><span class="p">,</span> <span class="n">gammas</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2021, Krishnateja Killamsetty, Dheeraj Bhat, Rishabh Iyer
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

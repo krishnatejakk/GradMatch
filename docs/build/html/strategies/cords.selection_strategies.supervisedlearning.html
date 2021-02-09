@@ -1,0 +1,746 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Supervised Learning Data Selection Strategies &mdash; GradMatch v0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="utils" href="GradMatch.utils.html" />
+    <link rel="prev" title="Data Selection Strategies" href="GradMatch.selection_strategies.html" />
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> GradMatch
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">GradMatch</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="GradMatch.selection_strategies.html">Data Selection Strategies</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Supervised Learning Data Selection Strategies</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-GradMatch.selectionstrategies.supervisedlearning.glisterstrategy">GLISTER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-GradMatch.selectionstrategies.supervisedlearning.craigstrategy">CRAIG</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy">OMPGradMatch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-GradMatch.selectionstrategies.supervisedlearning.randomstrategy">Random Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy">Data Selection Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy">Submodular Selection Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#references">REFERENCES</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="GradMatch.utils.html">utils</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GradMatch</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="modules.html">GradMatch</a> &raquo;</li>
+        
+          <li><a href="GradMatch.selection_strategies.html">Data Selection Strategies</a> &raquo;</li>
+        
+      <li>Supervised Learning Data Selection Strategies</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/strategies/GradMatch.selection_strategies.supervisedlearning.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="supervised-learning-data-selection-strategies">
+<h1>Supervised Learning Data Selection Strategies<a class="headerlink" href="#supervised-learning-data-selection-strategies" title="Permalink to this headline">¶</a></h1>
+<p>In this section, we consider different data selection strategies available for standard supervised learning framework.</p>
+<div class="section" id="module-GradMatch.selectionstrategies.supervisedlearning.glisterstrategy">
+<span id="glister"></span><h2>GLISTER<a class="headerlink" href="#module-GradMatch.selectionstrategies.supervisedlearning.glisterstrategy" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.glisterstrategy.GLISTERStrategy">
+<em class="property">class </em><code class="sig-prename descclassname">GradMatch.selectionstrategies.supervisedlearning.glisterstrategy.</code><code class="sig-name descname">GLISTERStrategy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">trainloader</span></em>, <em class="sig-param"><span class="n">valloader</span></em>, <em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">loss_type</span></em>, <em class="sig-param"><span class="n">eta</span></em>, <em class="sig-param"><span class="n">device</span></em>, <em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">linear_layer</span></em>, <em class="sig-param"><span class="n">selection_type</span></em>, <em class="sig-param"><span class="n">r</span><span class="o">=</span><span class="default_value">15</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/glisterstrategy.html#GLISTERStrategy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.glisterstrategy.GLISTERStrategy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy" title="GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy"><code class="xref py py-class docutils literal notranslate"><span class="pre">GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy</span></code></a></p>
+<p>Implementation of GLISTER-ONLINE Strategy from the paper <a class="footnote-reference brackets" href="#killamsetty2020glister" id="id1">1</a>  for supervised learning frameworks.
+GLISTER-ONLINE methods tries to solve the  bi-level optimization problem given below:</p>
+<div class="math notranslate nohighlight">
+\[\overbrace{\underset{{S \subseteq {\mathcal U}, |S| \leq k}}{\operatorname{argmin\hspace{0.7mm}}} L_V(\underbrace{\underset{\theta}{\operatorname{argmin\hspace{0.7mm}}} L_T( \theta, S)}_{inner-level}, {\mathcal V})}^{outer-level}\]</div>
+<p>In the above equation, <span class="math notranslate nohighlight">\(\mathcal{U}\)</span> denotes the training set, <span class="math notranslate nohighlight">\(\mathcal{V}\)</span> denotes the validation set that guides the subset selection process, <span class="math notranslate nohighlight">\(L_T\)</span> denotes the
+training loss, <span class="math notranslate nohighlight">\(L_V\)</span> denotes the validation loss, <span class="math notranslate nohighlight">\(S\)</span> denotes the data subset selected at each round,  and <span class="math notranslate nohighlight">\(k\)</span> is the budget for the subset.</p>
+<p>Since, solving the complete inner-optimization is expensive, GLISTER-ONLINE adopts a online one-step meta approximation where we approximate the solution to inner problem
+by taking a single gradient step.</p>
+<p>The optimization problem after the approximation is as follows:</p>
+<div class="math notranslate nohighlight">
+\[\overbrace{\underset{{S \subseteq {\mathcal U}, |S| \leq k}}{\operatorname{argmin\hspace{0.7mm}}} L_V(\underbrace{\theta - \eta \nabla_{\theta}L_T(\theta, S)}_{inner-level}, {\mathcal V})}^{outer-level}\]</div>
+<p>In the above equation, <span class="math notranslate nohighlight">\(\eta\)</span> denotes the step-size used for one-step gradient update.</p>
+<p>GLISTER-ONLINE also makes an additional approximation called Taylor-Series approximation to easily solve the outer problem using a greedy selection algorithm.
+The Taylor series approximation is as follows:</p>
+<div class="math notranslate nohighlight">
+\[L_V(\theta - \eta \nabla_{\theta}L_T(\theta, S), {\mathcal V}) \approx L_V(\theta) - \eta {\nabla_{\theta}L_T(\theta, S)}^T \nabla_{\theta}L_V(\theta, {\mathcal V})\]</div>
+<p>The Optimization problem after the Taylor series approximation is as follows:</p>
+<div class="math notranslate nohighlight">
+\[\underset{{S \subseteq {\mathcal U}, |S| \leq k}}{\operatorname{argmin\hspace{0.7mm}}}L_V(\theta - \eta \nabla_{\theta}L_T(\theta, S), {\mathcal V}) \approx L_V(\theta) - \eta {\nabla_{\theta}L_T(\theta, S)}^T \nabla_{\theta}L_V(\theta, {\mathcal V})\]</div>
+<p>Taylor’s series approximation reduces the time complexity by reducing the need of calculating the validation loss for each element during greedy selection step which
+means reducing the number of forward passes required.</p>
+<p>GLISTER-ONLINE is an adaptive subset selection algorithm that tries to select a subset every <span class="math notranslate nohighlight">\(L\)</span> epochs and the parameter <cite>L</cite> can be set in the original training loop.</p>
+<dl class="simple">
+<dt>Parameters</dt><dd></dd>
+<dt>trainloader: class</dt><dd><p>Loading the training data using pytorch DataLoader</p>
+</dd>
+<dt>valloader: class</dt><dd><p>Loading the validation data using pytorch DataLoader</p>
+</dd>
+<dt>model: class</dt><dd><p>Model architecture used for training</p>
+</dd>
+<dt>loss_type: class</dt><dd><p>The type of loss criterion</p>
+</dd>
+<dt>eta: float</dt><dd><p>Learning rate. Step size for the one step gradient update</p>
+</dd>
+<dt>device: str</dt><dd><p>The device being utilized - cpu | cuda</p>
+</dd>
+<dt>num_classes: int</dt><dd><p>The number of target classes in the dataset</p>
+</dd>
+<dt>linear_layer: bool</dt><dd><p>Apply linear transformation to the data</p>
+</dd>
+<dt>selection_type: str</dt><dd><p>Type of selection -
+- ‘RGreedy’ : RGreedy Selection method is a variant of naive greedy where we just perform r rounds of greedy selection by choosing k/r points in each round.
+- ‘Stochastic’ : Stochastic greedy selection method is based on the algorithm presented in this paper <a class="footnote-reference brackets" href="#mirzasoleiman2014lazier" id="id2">2</a>
+- ‘Naive’ : Normal naive greedy selection method that selects a single best element every step until the budget is fulfilled</p>
+</dd>
+<dt>r<span class="classifier">int, optional</span></dt><dd><p>Number of greedy selection rounds when selection method is RGreedy (default: 15)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.glisterstrategy.GLISTERStrategy.eval_taylor_modular">
+<code class="sig-name descname">eval_taylor_modular</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">grads</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/glisterstrategy.html#GLISTERStrategy.eval_taylor_modular"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.glisterstrategy.GLISTERStrategy.eval_taylor_modular" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluate gradients</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>grads</strong> (<em>Tensor</em>) – Gradients</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>gains</strong> – Matrix product of two tensors</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.glisterstrategy.GLISTERStrategy.select">
+<code class="sig-name descname">select</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">budget</span></em>, <em class="sig-param"><span class="n">model_params</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/glisterstrategy.html#GLISTERStrategy.select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.glisterstrategy.GLISTERStrategy.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply naive greedy method for data selection</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>budget</strong> (<em>int</em>) – The number of data points to be selected</p></li>
+<li><p><strong>model_params</strong> (<em>OrderedDict</em>) – Python dictionary object containing models parameters</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>greedySet</strong> (<em>list</em>) – List containing indices of the best datapoints,</p></li>
+<li><p><strong>budget</strong> (<em>Tensor</em>) – Tensor containing gradients of datapoints present in greedySet</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-GradMatch.selectionstrategies.supervisedlearning.craigstrategy">
+<span id="craig"></span><h2>CRAIG<a class="headerlink" href="#module-GradMatch.selectionstrategies.supervisedlearning.craigstrategy" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.craigstrategy.CRAIGStrategy">
+<em class="property">class </em><code class="sig-prename descclassname">GradMatch.selectionstrategies.supervisedlearning.craigstrategy.</code><code class="sig-name descname">CRAIGStrategy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">trainloader</span></em>, <em class="sig-param"><span class="n">valloader</span></em>, <em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">loss_type</span></em>, <em class="sig-param"><span class="n">device</span></em>, <em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">linear_layer</span></em>, <em class="sig-param"><span class="n">if_convex</span></em>, <em class="sig-param"><span class="n">selection_type</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/craigstrategy.html#CRAIGStrategy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.craigstrategy.CRAIGStrategy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy" title="GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy"><code class="xref py py-class docutils literal notranslate"><span class="pre">GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy</span></code></a></p>
+<p>Implementation of CRAIG Strategy from the paper <a class="footnote-reference brackets" href="#mirzasoleiman2020coresets" id="id3">3</a> for supervised learning frameworks.</p>
+<p>CRAIG strategy tries to solve the optimization problem given below for convex loss functions:</p>
+<div class="math notranslate nohighlight">
+\[\sum_{i\in \mathcal{U}} \min_{j \in S, |S| \leq k} \| x^i - x^j \|\]</div>
+<p>In the above equation, <span class="math notranslate nohighlight">\(\mathcal{U}\)</span> denotes the training set where <span class="math notranslate nohighlight">\((x^i, y^i)\)</span> denotes the <span class="math notranslate nohighlight">\(i^{th}\)</span> training data point and label respectively,
+<span class="math notranslate nohighlight">\(L_T\)</span> denotes the training loss, <span class="math notranslate nohighlight">\(S\)</span> denotes the data subset selected at each round, and <span class="math notranslate nohighlight">\(k\)</span> is the budget for the subset.</p>
+<p>Since, the above optimization problem is not dependent on model parameters, we run the subset selection only once right before the start of the training.</p>
+<p>CRAIG strategy tries to solve the optimization problem given below for non-convex loss functions:</p>
+<div class="math notranslate nohighlight">
+\[\sum_{i\in \mathcal{U}} \min_{j \in S, |S| \leq k} \| \nabla_{\theta} {L_T}^i(\theta) - \nabla_{\theta} {L_T}^j(\theta) \|\]</div>
+<p>In the above equation, <span class="math notranslate nohighlight">\(\mathcal{U}\)</span> denotes the training set, <span class="math notranslate nohighlight">\(L_T\)</span> denotes the training loss, <span class="math notranslate nohighlight">\(S\)</span> denotes the data subset selected at each round,
+and <span class="math notranslate nohighlight">\(k\)</span> is the budget for the subset. In this case, CRAIG acts an adaptive subset selection strategy that selects a new subset every epoch.</p>
+<p>Both the optimization problems given above are an instance of facility location problems which is a submodular function. Hence, it can be optimally solved using greedy selection methods.</p>
+<dl class="simple">
+<dt>Parameters</dt><dd></dd>
+<dt>trainloader: class</dt><dd><p>Loading the training data using pytorch DataLoader</p>
+</dd>
+<dt>valloader: class</dt><dd><p>Loading the validation data using pytorch DataLoader</p>
+</dd>
+<dt>model: class</dt><dd><p>Model architecture used for training</p>
+</dd>
+<dt>loss_type: class</dt><dd><p>The type of loss criterion</p>
+</dd>
+<dt>device: str</dt><dd><p>The device being utilized - cpu | cuda</p>
+</dd>
+<dt>num_classes: int</dt><dd><p>The number of target classes in the dataset</p>
+</dd>
+<dt>linear_layer: bool</dt><dd><p>Apply linear transformation to the data</p>
+</dd>
+<dt>if_convex: bool</dt><dd><p>If convex or not</p>
+</dd>
+<dt>selection_type: str</dt><dd><dl class="simple">
+<dt>Type of selection:</dt><dd><ul class="simple">
+<li><p>‘PerClass’: PerClass Implementation where the facility location problem is solved for each class seperately for speed ups.</p></li>
+<li><p>‘Supervised’:  Supervised Implementation where the facility location problem is solved using a sparse similarity matrix by assigning the similarity of a point with other points of different class to zero.</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.craigstrategy.CRAIGStrategy.compute_gamma">
+<code class="sig-name descname">compute_gamma</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">idxs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/craigstrategy.html#CRAIGStrategy.compute_gamma"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.craigstrategy.CRAIGStrategy.compute_gamma" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the gamma values for the indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>idxs</strong> (<em>list</em>) – The indices</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>gamma</strong> – Gradient values of the input indices</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.craigstrategy.CRAIGStrategy.compute_score">
+<code class="sig-name descname">compute_score</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">model_params</span></em>, <em class="sig-param"><span class="n">idxs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/craigstrategy.html#CRAIGStrategy.compute_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.craigstrategy.CRAIGStrategy.compute_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the score of the indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_params</strong> (<em>OrderedDict</em>) – Python dictionary object containing models parameters</p></li>
+<li><p><strong>idxs</strong> (<em>list</em>) – The indices</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.craigstrategy.CRAIGStrategy.distance">
+<code class="sig-name descname">distance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">exp</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/craigstrategy.html#CRAIGStrategy.distance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.craigstrategy.CRAIGStrategy.distance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the distance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – First input tensor</p></li>
+<li><p><strong>y</strong> (<em>Tensor</em>) – Second input tensor</p></li>
+<li><p><strong>exp</strong> (<em>float</em><em>, </em><em>optional</em>) – The exponent value (default: 2)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>dist</strong> – Output tensor</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.craigstrategy.CRAIGStrategy.get_similarity_kernel">
+<code class="sig-name descname">get_similarity_kernel</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/craigstrategy.html#CRAIGStrategy.get_similarity_kernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.craigstrategy.CRAIGStrategy.get_similarity_kernel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain the similarity kernel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>kernel</strong> – Array of kernel values</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.craigstrategy.CRAIGStrategy.select">
+<code class="sig-name descname">select</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">budget</span></em>, <em class="sig-param"><span class="n">model_params</span></em>, <em class="sig-param"><span class="n">optimizer</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/craigstrategy.html#CRAIGStrategy.select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.craigstrategy.CRAIGStrategy.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data selection method using different submodular optimization
+functions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>budget</strong> (<em>int</em>) – The number of data points to be selected</p></li>
+<li><p><strong>model_params</strong> (<em>OrderedDict</em>) – Python dictionary object containing models parameters</p></li>
+<li><p><strong>optimizer</strong> (<em>str</em>) – The optimization approach for data selection. Must be one of
+‘random’, ‘modular’, ‘naive’, ‘lazy’, ‘approximate-lazy’, ‘two-stage’,
+‘stochastic’, ‘sample’, ‘greedi’, ‘bidirectional’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>total_greedy_list</strong> (<em>list</em>) – List containing indices of the best datapoints</p></li>
+<li><p><strong>gammas</strong> (<em>list</em>) – List containing gradients of datapoints present in greedySet</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy">
+<span id="ompgradmatch"></span><h2>OMPGradMatch<a class="headerlink" href="#module-GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy.OMPGradMatchStrategy">
+<em class="property">class </em><code class="sig-prename descclassname">GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy.</code><code class="sig-name descname">OMPGradMatchStrategy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">trainloader</span></em>, <em class="sig-param"><span class="n">valloader</span></em>, <em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">loss_type</span></em>, <em class="sig-param"><span class="n">eta</span></em>, <em class="sig-param"><span class="n">device</span></em>, <em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">linear_layer</span></em>, <em class="sig-param"><span class="n">selection_type</span></em>, <em class="sig-param"><span class="n">valid</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/ompgradmatchstrategy.html#OMPGradMatchStrategy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy.OMPGradMatchStrategy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy" title="GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy"><code class="xref py py-class docutils literal notranslate"><span class="pre">GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy</span></code></a></p>
+<p>Implementation of OMPGradMatch Strategy from the paper <a class="footnote-reference brackets" href="#sivasubramanian2020gradmatch" id="id4">4</a> for supervised learning frameworks.</p>
+<p>OMPGradMatch strategy tries to solve the optimization problem given below:</p>
+<div class="math notranslate nohighlight">
+\[\min_{\mathbf{w}, S: |S| \leq k} \Vert \sum_{i \in S} w_i \nabla_{\theta}L_T^i(\theta) -  \nabla_{\theta}L(\theta)\Vert\]</div>
+<p>In the above equation, <span class="math notranslate nohighlight">\(\mathbf{w}\)</span> denotes the weight vector that contains the weights for each data instance, <span class="math notranslate nohighlight">\(\mathcal{U}\)</span> training set where <span class="math notranslate nohighlight">\((x^i, y^i)\)</span> denotes the <span class="math notranslate nohighlight">\(i^{th}\)</span> training data point and label respectively,
+<span class="math notranslate nohighlight">\(L_T\)</span> denotes the training loss, <span class="math notranslate nohighlight">\(L\)</span> denotes either training loss or validation loss depending on the parameter valid,
+<span class="math notranslate nohighlight">\(S\)</span> denotes the data subset selected at each round, and <span class="math notranslate nohighlight">\(k\)</span> is the budget for the subset.</p>
+<p>The above optimization problem is solved using the Orthogonal Matching Pursuit(OMP) algorithm.</p>
+<dl class="simple">
+<dt>Parameters</dt><dd></dd>
+<dt>trainloader: class</dt><dd><p>Loading the training data using pytorch DataLoader</p>
+</dd>
+<dt>valloader: class</dt><dd><p>Loading the validation data using pytorch DataLoader</p>
+</dd>
+<dt>model: class</dt><dd><p>Model architecture used for training</p>
+</dd>
+<dt>loss_type: class</dt><dd><p>The type of loss criterion</p>
+</dd>
+<dt>eta: float</dt><dd><p>Learning rate. Step size for the one step gradient update</p>
+</dd>
+<dt>device: str</dt><dd><p>The device being utilized - cpu | cuda</p>
+</dd>
+<dt>num_classes: int</dt><dd><p>The number of target classes in the dataset</p>
+</dd>
+<dt>linear_layer: bool</dt><dd><p>Apply linear transformation to the data</p>
+</dd>
+<dt>selection_type: str</dt><dd><p>Type of selection -
+- ‘PerClass’: PerClass method is where OMP algorithm is applied on each class data points seperately.
+- ‘PerClassPerGradient’: PerClassPerGradient method is same as PerClass but we use the gradient corresponding to classification layer of that class only.</p>
+</dd>
+<dt>valid<span class="classifier">bool, optional</span></dt><dd><p>If valid==True we use validation dataset gradient sum in OMP otherwise we use training dataset (default: False)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy.OMPGradMatchStrategy.gen_rand_prior_indices">
+<code class="sig-name descname">gen_rand_prior_indices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">curr_size</span></em>, <em class="sig-param"><span class="n">remainList</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/ompgradmatchstrategy.html#OMPGradMatchStrategy.gen_rand_prior_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy.OMPGradMatchStrategy.gen_rand_prior_indices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy.OMPGradMatchStrategy.ompwrapper">
+<code class="sig-name descname">ompwrapper</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">X</span></em>, <em class="sig-param"><span class="n">Y</span></em>, <em class="sig-param"><span class="n">bud</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/ompgradmatchstrategy.html#OMPGradMatchStrategy.ompwrapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy.OMPGradMatchStrategy.ompwrapper" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy.OMPGradMatchStrategy.select">
+<code class="sig-name descname">select</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">budget</span></em>, <em class="sig-param"><span class="n">model_params</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/ompgradmatchstrategy.html#OMPGradMatchStrategy.select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.ompgradmatchstrategy.OMPGradMatchStrategy.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply OMP Algorithm for data selection</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>budget</strong> (<em>int</em>) – The number of data points to be selected</p></li>
+<li><p><strong>model_params</strong> (<em>OrderedDict</em>) – Python dictionary object containing models parameters</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>greedySet</strong> (<em>list</em>) – List containing indices of the best datapoints,</p></li>
+<li><p><strong>budget</strong> (<em>Tensor</em>) – Tensor containing gradients of datapoints present in greedySet</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-GradMatch.selectionstrategies.supervisedlearning.randomstrategy">
+<span id="random-strategy"></span><h2>Random Strategy<a class="headerlink" href="#module-GradMatch.selectionstrategies.supervisedlearning.randomstrategy" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.randomstrategy.RandomStrategy">
+<em class="property">class </em><code class="sig-prename descclassname">GradMatch.selectionstrategies.supervisedlearning.randomstrategy.</code><code class="sig-name descname">RandomStrategy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">trainloader</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/randomstrategy.html#RandomStrategy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.randomstrategy.RandomStrategy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This is the Random Selection Strategy class where we select a set of random points as a datasubset
+and often acts as baselines to compare other selection strategies.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>trainloader</strong> (<em>class</em>) – Loading the training data using pytorch DataLoader</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.randomstrategy.RandomStrategy.select">
+<code class="sig-name descname">select</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">budget</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/randomstrategy.html#RandomStrategy.select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.randomstrategy.RandomStrategy.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform random sampling of indices of size budget.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>budget</strong> (<em>int</em>) – The number of data points to be selected</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>indxs</strong> (<em>ndarray</em>) – Array of indices of size budget selected randomly</p></li>
+<li><p><strong>gammas</strong> (<em>Tensor</em>) – Gradient values of selected indices</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy">
+<span id="data-selection-strategy"></span><h2>Data Selection Strategy<a class="headerlink" href="#module-GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy">
+<em class="property">class </em><code class="sig-prename descclassname">GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.</code><code class="sig-name descname">DataSelectionStrategy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">trainloader</span></em>, <em class="sig-param"><span class="n">valloader</span></em>, <em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">linear_layer</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/dataselectionstrategy.html#DataSelectionStrategy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Implementation of Data Selection Strategy class which serves as base class for other dataselectionstrategies for supervised learning frameworks.</p>
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy.compute_gradients">
+<code class="sig-name descname">compute_gradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">valid</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/dataselectionstrategy.html#DataSelectionStrategy.compute_gradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy.compute_gradients" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the gradient of each element</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy.select">
+<code class="sig-name descname">select</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">budget</span></em>, <em class="sig-param"><span class="n">model_params</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/dataselectionstrategy.html#DataSelectionStrategy.select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy.select" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy.update_model">
+<code class="sig-name descname">update_model</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">model_params</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/dataselectionstrategy.html#DataSelectionStrategy.update_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy.update_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the models parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model_params</strong> (<em>OrderedDict</em>) – Python dictionary object containing models parameters</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy">
+<span id="submodular-selection-strategy"></span><h2>Submodular Selection Strategy<a class="headerlink" href="#module-GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy.SubmodularSelectionStrategy">
+<em class="property">class </em><code class="sig-prename descclassname">GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy.</code><code class="sig-name descname">SubmodularSelectionStrategy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">trainloader</span></em>, <em class="sig-param"><span class="n">valloader</span></em>, <em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">loss_type</span></em>, <em class="sig-param"><span class="n">device</span></em>, <em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">linear_layer</span></em>, <em class="sig-param"><span class="n">if_convex</span></em>, <em class="sig-param"><span class="n">selection_type</span></em>, <em class="sig-param"><span class="n">submod_func_type</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/submodularselectionstrategy.html#SubmodularSelectionStrategy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy.SubmodularSelectionStrategy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy" title="GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy"><code class="xref py py-class docutils literal notranslate"><span class="pre">GradMatch.selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy</span></code></a></p>
+<p>This class extends <code class="xref py py-class docutils literal notranslate"><span class="pre">selectionstrategies.supervisedlearning.dataselectionstrategy.DataSelectionStrategy</span></code>
+to include submodular optmization functions using apricot for data selection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>trainloader</strong> (<em>class</em>) – Loading the training data using pytorch DataLoader</p></li>
+<li><p><strong>valloader</strong> (<em>class</em>) – Loading the validation data using pytorch DataLoader</p></li>
+<li><p><strong>model</strong> (<em>class</em>) – Model architecture used for training</p></li>
+<li><p><strong>loss_type</strong> (<em>class</em>) – The type of loss criterion</p></li>
+<li><p><strong>device</strong> (<em>str</em>) – The device being utilized - cpu | cuda</p></li>
+<li><p><strong>num_classes</strong> (<em>int</em>) – The number of target classes in the dataset</p></li>
+<li><p><strong>linear_layer</strong> (<em>bool</em>) – Apply linear transformation to the data</p></li>
+<li><p><strong>if_convex</strong> (<em>bool</em>) – If convex or not</p></li>
+<li><p><strong>selection_type</strong> (<em>str</em>) – PerClass or Supervised</p></li>
+<li><p><strong>submod_func_type</strong> (<em>str</em>) – The type of submodular optimization function. Must be one of
+‘facility-location’, ‘graph-cut’, ‘sum-redundancy’, ‘saturated-coverage’</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy.SubmodularSelectionStrategy.compute_gamma">
+<code class="sig-name descname">compute_gamma</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">idxs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/submodularselectionstrategy.html#SubmodularSelectionStrategy.compute_gamma"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy.SubmodularSelectionStrategy.compute_gamma" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the gamma values for the indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>idxs</strong> (<em>list</em>) – The indices</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>gamma</strong> – Gradient values of the input indices</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy.SubmodularSelectionStrategy.compute_score">
+<code class="sig-name descname">compute_score</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">model_params</span></em>, <em class="sig-param"><span class="n">idxs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/submodularselectionstrategy.html#SubmodularSelectionStrategy.compute_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy.SubmodularSelectionStrategy.compute_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the score of the indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_params</strong> (<em>OrderedDict</em>) – Python dictionary object containing models parameters</p></li>
+<li><p><strong>idxs</strong> (<em>list</em>) – The indices</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy.SubmodularSelectionStrategy.distance">
+<code class="sig-name descname">distance</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em>, <em class="sig-param"><span class="n">exp</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/submodularselectionstrategy.html#SubmodularSelectionStrategy.distance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy.SubmodularSelectionStrategy.distance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the distance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – First input tensor</p></li>
+<li><p><strong>y</strong> (<em>Tensor</em>) – Second input tensor</p></li>
+<li><p><strong>exp</strong> (<em>float</em><em>, </em><em>optional</em>) – The exponent value (default: 2)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>dist</strong> – Output tensor</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy.SubmodularSelectionStrategy.get_similarity_kernel">
+<code class="sig-name descname">get_similarity_kernel</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/submodularselectionstrategy.html#SubmodularSelectionStrategy.get_similarity_kernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy.SubmodularSelectionStrategy.get_similarity_kernel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtain the similarity kernel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>kernel</strong> – Array of kernel values</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy.SubmodularSelectionStrategy.select">
+<code class="sig-name descname">select</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">budget</span></em>, <em class="sig-param"><span class="n">model_params</span></em>, <em class="sig-param"><span class="n">optimizer</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GradMatch/selectionstrategies/supervisedlearning/submodularselectionstrategy.html#SubmodularSelectionStrategy.select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#GradMatch.selectionstrategies.supervisedlearning.submodularselectionstrategy.SubmodularSelectionStrategy.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Data selection method using different submodular optimization
+functions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>budget</strong> (<em>int</em>) – The number of data points to be selected</p></li>
+<li><p><strong>model_params</strong> (<em>OrderedDict</em>) – Python dictionary object containing models parameters</p></li>
+<li><p><strong>optimizer</strong> (<em>str</em>) – The optimization approach for data selection. Must be one of
+‘random’, ‘modular’, ‘naive’, ‘lazy’, ‘approximate-lazy’, ‘two-stage’,
+‘stochastic’, ‘sample’, ‘greedi’, ‘bidirectional’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>total_greedy_list</strong> (<em>list</em>) – List containing indices of the best datapoints</p></li>
+<li><p><strong>gammas</strong> (<em>list</em>) – List containing gradients of datapoints present in greedySet</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="references">
+<h2>REFERENCES<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
+<p><dl class="footnote brackets">
+<dt class="label" id="killamsetty2020glister"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
+<dd><p>Krishnateja Killamsetty, Durga Sivasubramanian, Ganesh Ramakrishnan, and Rishabh Iyer. Glister: generalization based data subset selection for efficient and robust learning. 2020. <a class="reference external" href="https://arxiv.org/abs/2012.10630">arXiv:2012.10630</a>.</p>
+</dd>
+<dt class="label" id="mirzasoleiman2014lazier"><span class="brackets"><a class="fn-backref" href="#id2">2</a></span></dt>
+<dd><p>Baharan Mirzasoleiman, Ashwinkumar Badanidiyuru, Amin Karbasi, Jan Vondrak, and Andreas Krause. Lazier than lazy greedy. 2014. <a class="reference external" href="https://arxiv.org/abs/1409.7938">arXiv:1409.7938</a>.</p>
+</dd>
+<dt class="label" id="mirzasoleiman2020coresets"><span class="brackets"><a class="fn-backref" href="#id3">3</a></span></dt>
+<dd><p>Baharan Mirzasoleiman, Jeff Bilmes, and Jure Leskovec. Coresets for data-efficient training of machine learning models. 2020. <a class="reference external" href="https://arxiv.org/abs/1906.01827">arXiv:1906.01827</a>.</p>
+</dd>
+<dt class="label" id="sivasubramanian2020gradmatch"><span class="brackets"><a class="fn-backref" href="#id4">4</a></span></dt>
+<dd><p>Durga Sivasubramanian, Krishnateja Killamsetty, Ganesh Ramakrishnan, and Rishabh Iyer. Grad-match: a gradient matching based data selection framework for data-efficient learning. 2020.</p>
+</dd>
+</dl>
+</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="GradMatch.utils.html" class="btn btn-neutral float-right" title="utils" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="GradMatch.selection_strategies.html" class="btn btn-neutral float-left" title="Data Selection Strategies" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2021, Krishnateja Killamsetty, Dheeraj Bhat, Rishabh Iyer
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

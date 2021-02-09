@@ -1,0 +1,257 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Welcome to GradMatch’s documentation! &mdash; GradMatch v0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="GradMatch" href="strategies/modules.html" />
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="#" class="icon icon-home" alt="Documentation Home"> GradMatch
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="strategies/modules.html">GradMatch</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">GradMatch</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Welcome to GradMatch’s documentation!</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <style> .red {color:#aa0060; font-weight:bold; font-size:16px} </style><div class="section" id="welcome-to-GradMatch-s-documentation">
+<h1>Welcome to GradMatch’s documentation!<a class="headerlink" href="#welcome-to-GradMatch-s-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="GradMatch-coresets-and-data-subset-selection">
+<h2>GradMatch::COResets and Data Subset selection<a class="headerlink" href="#GradMatch-coresets-and-data-subset-selection" title="Permalink to this headline">¶</a></h2>
+<p>GradMatch:: COResets and Data Subset selection is an efficient and scalable library for
+data efficient machine learning built on top of pytorch.
+The primary purpose of GradMatch is to select the right representative data subset from massive datasets. We use submodularity based data selection strategies to select such subsets.</p>
+<p>At a high level, submodular functions operate on sets of elements and optimizing them involves selecting a subset of elements. The functions implemented in apricot return a value that is inversely related to the redundancy of the selected elements, meaning that maximizing them involves selecting a set of non-redundant elements. A key property of these functions is that they are <em>submodular</em>, meaning that the gain in the function value that a particular element would yield either decreases or stays the same each time an element is added to the subset (this is also known as the diminishing returns property).</p>
+<a class="reference internal image-reference" href="_images/submodularity.png"><img alt="_images/submodularity.png" src="_images/submodularity.png" style="width: 1000px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>The selected subsets can be used for summarizing the dataset like finding the key parts of a video.</p>
+<a class="reference internal image-reference" href="_images/GradMatch_summary.png"><img alt="_images/GradMatch_summary.png" src="_images/GradMatch_summary.png" style="width: 1000px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>These subsets can also be used for training machine learning models for faster and efficient training.
+It might seem counterintuitive at first to train a model using only a fraction of your data.
+Unfortunately, the compute required to train models on huge data sets might not be available to everyone.</p>
+<div class="admonition attention">
+<p class="admonition-title">Attention</p>
+<p>Training a Yolo V5X Model may take 8 days on a single V-100 GPU.</p>
+</div>
+<p>Instead of relying on random subsampling, one could instead select a subset using some submodularity based data selection strategies.
+The GradMatch repo contains some of the state of the art data subset selection strategies that achieves close to full training accuracy even
+when trained on a meager 10% subset of data while achieving significant speed ups.</p>
+<a class="reference internal image-reference" href="_images/cifar10_dss_300.png"><img alt="_images/cifar10_dss_300.png" src="_images/cifar10_dss_300.png" style="width: 1000px;" /></a>
+<a class="reference internal image-reference" href="_images/CIFAR10_timing_with_full.png"><img alt="_images/CIFAR10_timing_with_full.png" src="_images/CIFAR10_timing_with_full.png" style="width: 1000px;" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>From the above figure, we can see that on CIFAR-10 dataset using RESNET18, GLISTER a data subset selection strategy
+achieves a <span class="red">6x speedup at 10%, 2.5x speedup at 30%, and 1.5x speedup at 50%</span>, while losing 3%, 1.2% and 0.2% in terms of accuracy compared to full training.</p>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="strategies/modules.html">GradMatch</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="strategies/GradMatch.selection_strategies.html">Data Selection Strategies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategies/GradMatch.utils.html">utils</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="strategies/modules.html" class="btn btn-neutral float-right" title="GradMatch" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2021, Krishnateja Killamsetty, Dheeraj Bhat, Rishabh Iyer
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
