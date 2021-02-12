@@ -3,11 +3,11 @@ import setuptools
 
 setup(
     name='GradMatch',
-    version='0.2.2',
+    version='0.0.1',
     author='',
     author_email='',
     #packages=['GradMatch', 'GradMatch/selectionstrategies', 'GradMatch/utils'],
-    url='https://github.com/decile-team/GradMatch',
+    url='https://anonymous.4open.science/repository/2eada7f6-5514-4409-8d90-ff4f8d7d5c03/',
     license='LICENSE.txt',
     packages=setuptools.find_packages(),
     description='GradMatch is a package for data subset selection for efficient and robust machine learning.',
